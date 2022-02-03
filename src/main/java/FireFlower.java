@@ -15,16 +15,20 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
     int xClick, yClick;
     static int panelLength = 1600;
     static int panelHeight = 800;
+    //烟花上升速度
+    static int upSpeed = 5;
     //爆炸条数
     static int boomNum = 100;
     //重力加速度
     static double G = 9.8;
+    //摩擦力加速度
+    static double GM = 5;
     //半径
-    static int d = 150;
+    static int d = 1500;
     //频率
-    static double freq = 0.1;
+    static double freq = 0.08;
     //烟花炸开时保留长度
-    static int boomLength = 5;
+    static int boomLength = 7;
     //上升图形宽度
     static int upWidth = 5;
     //上升高度
@@ -34,9 +38,11 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
     //爆炸点高度
     static int boomHeight = 3;
     //水平速度
-    static int horV = 200;
+    static int horV = 50;
     //竖直速度
-    static int verV = 20;
+    static int verV = 40;
+    //总速度
+    static int sumV = 60;
 
 
     FireFlower() {
@@ -46,7 +52,7 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
     @Override
     public void paint(Graphics g) {
 
-        ImageIcon image = new ImageIcon("D:\\idea_workspace\\fire_flower\\src\\main\\resources\\image\\1.jpg");
+        ImageIcon image = new ImageIcon("src\\main\\resources\\image\\1.jpg");
         getGraphics().drawImage(image.getImage(), 0, 0, getSize().width, getSize().height, this);
         super.paint(g);
     }
@@ -102,28 +108,24 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
         int r, g, b;
         //烟花上升过程
         while (threadyClick < hasMoved) {
-            hasMoved -= 5;
-            r = (int) (Math.random() * (255 - 200 + 1) + 200);
-            g = (int) (Math.random() * (255 - 200 + 1) + 200);
-            b = (int) (Math.random() * (255 - 150 + 1) + 150);
-            graphics.setColor(new Color(r, g, b));
+            hasMoved -= upSpeed;
+            graphics.setColor(new Color(247, 247, 248));
             graphics.fillOval(threadxClick, hasMoved, upWidth, upHeight);
             for (int j = 0; j <= 10; j++) {
-                Color color = graphics.getColor();
-                graphics.setColor(new Color(r, g, b));
-                graphics.fillOval(threadxClick, hasMoved + j * 5, upWidth, upHeight);
+                graphics.setColor(new Color(247, 247, 248));
+                graphics.fillOval(threadxClick, hasMoved + j * upSpeed, upWidth, upHeight);
             }
             graphics.setColor(Color.black);
-            graphics.fillOval(threadxClick, hasMoved + 5 * 10, upWidth, upHeight);
+            graphics.fillOval(threadxClick, hasMoved + upSpeed * 10, upWidth, upHeight);
             try {
                 Thread.currentThread().sleep(v++);
             } catch (InterruptedException e) {
             }
         }
         //置黑色
-        for (int j = 12; j >= 0; j--) {
+        for (int j = 10; j >= 0; j--) {
             graphics.setColor(Color.black);
-            graphics.fillOval(threadxClick, hasMoved + (j * 5), upWidth, upHeight);
+            graphics.fillOval(threadxClick, hasMoved + (j * upSpeed), upWidth, upHeight);
             try {
                 Thread.currentThread().sleep((v++) / 3);
             } catch (InterruptedException e) {
@@ -134,7 +136,7 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
         while (hasMoved > threadyClick) {
             graphics.setColor(Color.black);
             graphics.fillOval(threadxClick - 2, hasMoved, upWidth, upHeight);
-            hasMoved -= 5;
+            hasMoved -= upSpeed;
         }
         int atX = threadxClick;
         int atY = threadyClick;
@@ -146,13 +148,18 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
         int[][] yPoints = new int[boomNum][400];
         int[] usedSize = new int[boomNum];
         for (int j = 0; j < boomNum; j++) {
-            x0 = (int) (Math.random() * horV) - horV / 2;
-            y0 = (int) (Math.random() * verV) - verV / 2;
-            for (int i = 3; i < 400; i++) {
-                int y = (int) (y0 * i - 0.5 * G * i * i * freq * freq);
-                int x = (int) (x0 * i * freq);
-                if (x * x + y * y <= d * d - Math.random() * 50) {
-                    xPoints[j][i] = atX + x;
+            x0 = (int) (Math.random() * (sumV * 2 + 1)) - sumV;
+//            y0 = (int) (Math.random() * verV) - verV / 2;
+            int yinit = (int) Math.sqrt(sumV * sumV - x0 * x0);
+            y0 = yinit >= 0 ? yinit : -yinit;
+            y0 = (int) (Math.random() * y0);
+            for (int i = 0; i < 400; i++) {
+                int y = (int) (y0 * i * freq - 0.5 * G * i * i * freq * freq - 0.5 * GM * i * i * freq * freq);
+                int x = (int) (x0 * i * freq - 0.5 * GM * i * i * freq * freq);
+
+//                x = Math.abs(x) > Math.abs(atX - xPoints[j][i - 1]) ? x : atX - xPoints[j][i - 1];
+                if (x * x + y * y <= d * d) {
+                    xPoints[j][i] = atX - x;
                     yPoints[j][i] = atY - y;
                     usedSize[j]++;
                 } else {
@@ -161,13 +168,12 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
             }
         }
 
-        v = 150;
+        v = 20;
 
         r = (int) (Math.random() * (255 - 200 + 1) + 200);
         g = (int) (Math.random() * (255 - 150 + 1) + 150);
         b = (int) (Math.random() * (255 - 10 + 1) + 10);
         for (int j = 0; j <= 30; j++) {
-
             for (int i = 0; i < boomNum; i++) {
                 //剔除空值
                 int pointSize = 0;
@@ -180,19 +186,24 @@ public class FireFlower extends Applet implements MouseListener, Runnable {
                         pointSize++;
                     }
                 }
+                if (j < boomLength) {
+                    graphics.setColor(new Color(247, 247, 248));
+                    graphics.fillOval(thisPointsx[j], thisPointsy[j], boomWidth + 10, boomHeight);
+                } else {
+                    graphics.setColor(new Color(r, g, b));
+                    graphics.fillOval(thisPointsx[j], thisPointsy[j], boomWidth, boomHeight);
+                }
 
-
-                graphics.setColor(new Color(r, g, b));
-                graphics.fillOval(thisPointsx[j], thisPointsy[j], boomWidth, boomHeight);
 //                graphics.drawPolyline(thisPointsx, thisPointsy, usedSize[i]);
 
                 if (j >= boomLength) {
                     graphics.setColor(Color.black);
-//                    graphics.drawPolyline(thisPointsx, thisPointsy, j - 3);
-                    graphics.fillOval(thisPointsx[j - boomLength], thisPointsy[j - boomLength], boomWidth, boomHeight);
+//                    graphics.drawPolyline(thisPointsx, thisPointsy, j - boomLength);
+                    graphics.fillOval(thisPointsx[j - boomLength], thisPointsy[j - boomLength], boomWidth + 10, boomHeight);
                 }
             }
-            v -= 1;
+            v++;
+            v = Math.min(v, 150);
             try {
                 Thread.currentThread().sleep(v);
             } catch (InterruptedException e) {
